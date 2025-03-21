@@ -1,3 +1,5 @@
+package com.hikarukimi.taimountain
+
 enum class UrlConstant(val urlString: String) {
     /**
      * 基础天气数据的URL。
@@ -26,7 +28,7 @@ enum class UrlConstant(val urlString: String) {
             return try {
                 valueOf(name).urlString
             } catch (e: IllegalArgumentException) {
-                throw IllegalArgumentException("No constant with name '$name' found in UrlConstant.")
+                throw IllegalArgumentException("No constant with name '$name' found in com.hikarukimi.taimountain.UrlConstant.")
             }
         }
 

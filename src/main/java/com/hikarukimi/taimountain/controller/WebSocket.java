@@ -27,8 +27,6 @@ public class WebSocket implements ApplicationContextAware {
     // 使用 CopyOnWriteArraySet存储 session，避免并发修改异常
     private static final CopyOnWriteArraySet<Session> WEB_SOCKET_SET = new CopyOnWriteArraySet<>();
 
-    private Session currentSession;
-
     private static ApplicationContext springApplication;
 
     private static WeatherService weatherService;
@@ -69,7 +67,6 @@ public class WebSocket implements ApplicationContextAware {
 
         // 将新会话添加到集合中
         WEB_SOCKET_SET.add(session);
-        this.currentSession = session;
 
         log.info("[websocket] 新的连接：id={}", session.getId());
     }
