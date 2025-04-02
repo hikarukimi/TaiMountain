@@ -1,8 +1,10 @@
 package com.hikarukimi.taimountain.controller;
 
 import com.alibaba.fastjson2.JSON;
+import com.hikarukimi.taimountain.service.ScheduleService;
 import com.hikarukimi.taimountain.service.WeatherService;
 import jakarta.websocket.*;
+import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -10,6 +12,7 @@ import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
+
 import java.io.IOException;
 import java.time.Instant;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -21,7 +24,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
  */
 @Slf4j
 @Component
-@ServerEndpoint("/ws")
+@ServerEndpoint("/ws/{location}")
 public class WebSocket implements ApplicationContextAware {
 
     // 使用 CopyOnWriteArraySet存储 session，避免并发修改异常
@@ -60,10 +63,13 @@ public class WebSocket implements ApplicationContextAware {
      * @param endpointConfig 端点配置
      */
     @OnOpen
-    public void onOpen(Session session, EndpointConfig endpointConfig){
+    public void onOpen(Session session, EndpointConfig endpointConfig, @PathParam("location") String location){
         if (weatherService == null) {
             weatherService = springApplication.getBean(WeatherService.class);
         }
+
+        // 将 location 存储到 Session 的用户属性中
+        session.getUserProperties().put("location", location);
 
         // 将新会话添加到集合中
         WEB_SOCKET_SET.add(session);
@@ -102,14 +108,24 @@ public class WebSocket implements ApplicationContextAware {
      * 发送消息给所有连接的客户端。
      */
     public void sendMessage() throws IOException {
-        log.info("尝试发送消息...");
+        if (WEB_SOCKET_SET.isEmpty()) {
+            return;
+        }
         if (weatherService == null) {
             weatherService = springApplication.getBean(WeatherService.class);
         }
-        String message = JSON.toJSONString(weatherService.getForecast().getData());
+
         for (Session session : WEB_SOCKET_SET) {
             if (session.isOpen()) {
-                log.info("[websocket] 发送消息：id={}，message={}", session.getId(), message);
+                // 从 Session 的用户属性中获取 location
+                String location = (String) session.getUserProperties().get("location");
+                if (location == null) {
+                    continue;
+                }
+
+                // 根据 location 获取天气信息
+                String message = JSON.toJSONString(weatherService.getForecast(location).getData());
+
                 session.getAsyncRemote().sendText(message);
             }
         }

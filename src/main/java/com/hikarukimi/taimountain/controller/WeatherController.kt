@@ -4,7 +4,9 @@ import com.hikarukimi.taimountain.service.WeatherService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 /**
@@ -20,6 +22,7 @@ class WeatherController
  *
  * @param weatherService 用于获取天气数据的服务类实例
  */ @Autowired constructor(private val weatherService: WeatherService) {
+
     @get:GetMapping("/basic")
     val weather: ResponseEntity<Any>
         /**
@@ -38,23 +41,43 @@ class WeatherController
                 return ResponseEntity.status(500).body(Response.error("Failed to retrieve basic weather information."))
             }
         }
+    /**
+     * 获取天气预报信息。
+     *
+     * GET /weathers/forecast
+     * 返回未来几天的天气预报信息。
+     *
+     * @return Response 包含天气预报数据的对象
+     */
+       @GetMapping("/forecast")
+       fun forecast(@RequestParam("location") location: String): ResponseEntity<Any>
+       {
+                try {
+                    val response: Response = weatherService.getForecast(location)
+                    return ResponseEntity.ok(response)
+                } catch (e: Exception) {
+                    return ResponseEntity.status(500).body(Response.error("Failed to retrieve weather forecast."))
+                }
+       }
 
-    @get:GetMapping("/forecast")
-    val forecast: ResponseEntity<Any>
-        /**
-         * 获取天气预报信息。
-         *
-         * GET /weathers/forecast
-         * 返回未来几天的天气预报信息。
-         *
-         * @return Response 包含天气预报数据的对象
-         */
+        @get:GetMapping("/gate")
+        val gateTime: ResponseEntity<Any>
         get() {
             try {
-                val response: Response = weatherService.getForecast()
+                val response: Response = weatherService.getGateTime()
                 return ResponseEntity.ok(response)
             } catch (e: Exception) {
-                return ResponseEntity.status(500).body(Response.error("Failed to retrieve weather forecast."))
+                return ResponseEntity.status(500).body(Response.error("Failed to retrieve gate time."))
             }
         }
+
+     @GetMapping("/location/{location}")
+     fun getWeatherByLocation(@PathVariable("location") location: String): ResponseEntity<Any> {
+         try {
+             val response: Response = weatherService.getWeatherByLocation(location)
+             return ResponseEntity.ok(response)
+         } catch (e: Exception) {
+             return ResponseEntity.status(500).body(Response.error("Failed to retrieve weather information."))
+         }
+     }
 }

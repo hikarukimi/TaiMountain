@@ -1,11 +1,12 @@
 package com.hikarukimi.taimountain.service
 
 import com.hikarukimi.taimountain.controller.WebSocket
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
+import java.time.LocalDateTime
 
 /**
  * ScheduleService 负责定时任务的调度。
@@ -16,7 +17,7 @@ import org.slf4j.LoggerFactory
  */
 @EnableScheduling
 @Component
-class ScheduleService @Autowired constructor(private val webSocket: WebSocket) {
+class ScheduleService  @Autowired constructor(private val webSocket: WebSocket) {
 
     /**
      * 日志记录器实例。
@@ -24,15 +25,15 @@ class ScheduleService @Autowired constructor(private val webSocket: WebSocket) {
     private val logger = LoggerFactory.getLogger(ScheduleService::class.java)
 
     /**
-     *每10秒执行一次 sendMessage 方法。
+     *每5秒执行一次 sendMessage 方法。
     * 在方法内部，首先打印 WebSocket 实例信息（用于调试），
     * 然后调用 WebSocket 的 sendMessage 方法发送消息。
     */
-    @Scheduled(cron = "*/10 * * * * ?")
+    @Scheduled(cron = "*/5 * * * * ?")
     fun sendMessage() {
-        logger.info("WebSocket instance: $webSocket")
 
         try {
+            logger.info("现在是 ${LocalDateTime.now()}")
             // 尝试发送消息
             webSocket.sendMessage()
         } catch (e: Exception) {

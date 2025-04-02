@@ -1,8 +1,5 @@
 package com.hikarukimi.taimountain
 
-import com.hikarukimi.taimountain.service.ScheduleService
-import org.slf4j.LoggerFactory
-
 /**
  * Response 类用于封装 API 响应数据。
  *
@@ -15,7 +12,6 @@ import org.slf4j.LoggerFactory
 class Response private constructor(private val code: Int, private val message: String, val data: Any?) {
 
     companion object {
-        private val logger = LoggerFactory.getLogger(ScheduleService::class.java)
 
         /**
          * 创建一个表示成功的响应。
@@ -30,11 +26,19 @@ class Response private constructor(private val code: Int, private val message: S
         /**
          * 创建一个表示错误的响应。
          *
+         * @return 错误的 Response 对象，状态码为 500，data 为 null。
+         */
+        fun error(): Response {
+            return Response(500, "error", null)
+        }
+
+        /**
+         * 创建一个表示错误的响应。
+         *
          * @param message 错误消息描述。
          * @return 错误的 Response 对象，状态码为 500，data 为 null。
          */
         fun error(message: String): Response {
-            logger.error ( "API Error: $message" )
             return Response(500, message, null)
         }
 

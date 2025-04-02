@@ -1,6 +1,5 @@
 package com.hikarukimi.taimountain.util
 
-import com.hikarukimi.taimountain.service.ScheduleService
 import org.slf4j.LoggerFactory
 
 /**
@@ -11,10 +10,6 @@ import org.slf4j.LoggerFactory
 class RegexUtil private constructor() { // 私有构造函数防止实例化
 
     companion object {
-        /**
-         * 日志记录器实例。
-         */
-        private val logger = LoggerFactory.getLogger(ScheduleService::class.java)
 
         /**
          * 从输入字符串中提取 JSON 部分。
@@ -39,7 +34,6 @@ class RegexUtil private constructor() { // 私有构造函数防止实例化
 
             // 如果找到了匹配的部分，则返回捕获组中的 JSON 字符串
             return matchResult?.groups?.get(1)?.value ?: run {
-                logger.error ( "输入字符串不符合预期格式: $input" )
                 throw IllegalArgumentException("输入字符串不符合预期格式")
             }
         }

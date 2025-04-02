@@ -11,6 +11,7 @@ import com.hikarukimi.taimountain.util.RegexUtil
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.reactive.function.client.WebClient
 
 @Service
@@ -43,7 +44,11 @@ class WeatherService {
             val responseBody = webClient.get().retrieve().bodyToMono(String::class.java).block()
             if (responseBody != null) {
                 // 使用正则表达式提取 JSON 字符串，并通过 Json 解析器将其转换为 WeatherInfo 对象
-                Response.data(Json.decodeFromString<WeatherInfo>(RegexUtil.extractJsonFromVarParameter(responseBody)))
+
+//                Response.data(Json.decodeFromString<WeatherInfo>(RegexUtil.extractJsonFromVarParameter(responseBody)))
+                //TODO 记得删这里
+                return Response.data(Json.decodeFromString<WeatherInfo>(RegexUtil.extractJsonFromVarParameter(responseBody)))
+
             } else {
                 Response.error("Failed to retrieve weather data: Empty response body.")
             }
@@ -61,13 +66,15 @@ class WeatherService {
      *
      * @return Response 包含当前天气和天气预报数据。
      */
-    fun getForecast(): Response {
+    fun getForecast(@RequestParam("location") location : String): Response {
+
+
         // 构建 WebClient 实例并发送 GET 请求
         val webClient = WebClient.builder()
             .defaultHeaders { headers ->
                 headers.add("Referer", "https://www.msn.cn/zh-cn/weather/forecast/in-%E5%B1%B1%E4%B8%9C%E7%9C%81,%E6%B3%B0%E5%AE%89%E5%B8%82?ocid=ansmsnweather&loc=eyJsIjoi5rOw5bGx5Yy6IiwiciI6IuWxseS4nOecgSIsInIyIjoi5rOw5a6J5biCIiwiYyI6IuS4reWNjuS6uuawkeWFseWSjOWbvSIsImkiOiJjbiIsInQiOjEwMiwiZyI6InpoLWNuIiwieCI6IjExNy4xMzUy")
             }
-            .baseUrl(UrlConstant.FORECAST_URL.urlString)
+            .baseUrl(UrlConstant.fromName(location))
             .build()
 
         // 发送请求并处理响应
@@ -86,22 +93,36 @@ class WeatherService {
 
             // 提取当前天气数据并解析为 CurrentWeather 对象
             val currentString = JSON.toJSONString(JSONPath.eval(weather, "$[0].current"))
+            val comment=JSONPath.eval(weather, "$[0].alerts.safetyGuide[0]")
             val currentWeather = jsonParser.decodeFromString<CurrentWeather>(currentString)
 
             // 提取天气预报数据并解析为 WeatherForecast 对象列表
             val forecastString = JSONPath.eval(weather, "$[0].forecast.days..hourly[*]") as ArrayList<ArrayList<*>>
+            val forecastSunSet = JSONPath.eval(weather, "$[0].forecast.days[*].almanac.sunset") as ArrayList<String>
+            val forecastSunRise = JSONPath.eval(weather, "$[0].forecast.days[*].almanac.sunrise") as ArrayList<String>
             val forecastList = ArrayList<WeatherForecast>()
 
+            var rainAmount=0.0
+            var cur=0
             // 遍历天气预报数据，逐个解析并添加到列表中
             for (i in 0 until forecastString.size) {
                 for (j in 0 until forecastString[i].size) {
                     val forecast = JSON.toJSONString(forecastString[i][j])
                     forecastList.add(jsonParser.decodeFromString<WeatherForecast>(forecast))
+                    forecastList[cur].sunset = forecastSunSet[i]
+                    forecastList[cur].sunrise = forecastSunRise[i]
+                    forecastList[cur].buildOwn()
+                    rainAmount += forecastList[cur].rainAmount
+                    cur++
                 }
             }
 
             // 将当前天气和天气预报数据放入 HashMap
             resultHashMap["current"] = currentWeather
+            currentWeather.rainAmount = rainAmount
+            currentWeather.buildOwn()
+            currentWeather.comment= comment?.toString()
+            currentWeather.buildComment()
             resultHashMap["forecast"] = forecastList
 
             // 返回包含数据的 Response
@@ -110,5 +131,37 @@ class WeatherService {
             logger.error("Error fetching forecast data.", e)
             Response.error("Failed to retrieve forecast data: ${e.message}")
         }
+    }
+
+    fun getGateTime(): Response {
+        val map= HashMap<String,String>()
+        map["openTime"] = "08:00"
+        map["closeTime"] = "16:00"
+        return Response.data(map)
+    }
+
+    fun getWeatherByLocation(location: String): Response {
+        // 构建 WebClient 实例并发送 GET 请求
+        val webClient = WebClient.builder()
+            .defaultHeaders { headers ->
+                headers.add("Referer", "https://www.msn.cn/zh-cn/weather/forecast/in-%E5%B1%B1%E4%B8%9C%E7%9C%81,%E6%B3%B0%E5%AE%89%E5%B8%82?ocid=ansmsnweather&loc=eyJsIjoi5rOw5bGx5Yy6IiwiciI6IuWxseS4nOecgSIsInIyIjoi5rOw5a6J5biCIiwiYyI6IuS4reWNjuS6uuawkeWFseWSjOWbvSIsImkiOiJjbiIsInQiOjEwMiwiZyI6InpoLWNuIiwieCI6IjExNy4xMzUy")
+            }
+            .baseUrl(UrlConstant.fromName(location))
+            .build()
+
+        val responseBody = webClient.get().retrieve().bodyToMono(String::class.java).block() ?:
+        return Response.error("Failed to retrieve forecast data: Empty response body.")
+
+        // 创建自定义的 Json 解析器，忽略未知字段
+        val jsonParser = Json { ignoreUnknownKeys = true }
+
+        // 创建 HashMap 用于存储最终结果
+        val resultHashMap = HashMap<String, Any>()
+
+        // 使用 JSONPath 提取天气数据
+        val weather = JSONPath.eval(responseBody, "$.responses[0].weather")
+
+        val result=JSONPath.eval(weather, "$[0].current.cap")
+        return Response.data(result)
     }
 }

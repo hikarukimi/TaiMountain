@@ -24,6 +24,7 @@ class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception::class)
     fun handleException(exception: Exception): ResponseEntity<Response> {
+        println(exception.stackTrace)
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Response.error("服务器内部错误"))
     }
 }
