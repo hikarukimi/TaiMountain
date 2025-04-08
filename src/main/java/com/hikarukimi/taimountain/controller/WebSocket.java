@@ -1,7 +1,6 @@
 package com.hikarukimi.taimountain.controller;
 
 import com.alibaba.fastjson2.JSON;
-import com.hikarukimi.taimountain.service.ScheduleService;
 import com.hikarukimi.taimountain.service.WeatherService;
 import jakarta.websocket.*;
 import jakarta.websocket.server.PathParam;
